@@ -23,6 +23,13 @@ class CurvesTests(unittest.TestCase):
         self.assertEqual(set(folds), {2, 8})
         self.assertEqual(len(folds[2]), 2)
 
+    def test_original_adjacent_metric_fields_and_duplicate_detection(self):
+        rows = parse_log('Epoch 1 | uni=1e-05, multi=.2, mmc=.3 total_loss=.50001 || Acc=.9 AUPR(macro)=0.0606F1(macro)=0.0592 ||AUC(micro)=.8')[0]
+        self.assertEqual(rows[0]['AUPR(macro)'], .0606)
+        self.assertEqual(rows[0]['F1(macro)'], .0592)
+        with self.assertRaisesRegex(ValueError, 'duplicate metric'):
+            parse_log('Epoch 1 loss=.3 loss=.2')
+
     def test_inconsistent_fold_ids_are_errors(self):
         with self.assertRaisesRegex(ValueError, 'disagree'):
             parse_log('Fold 2\nEpoch 1 loss=0.3\nfold 7, test_loss=0.1')

@@ -10,7 +10,7 @@ import re
 
 NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\Z")
 EPOCH = re.compile(r"\bEpoch\s*(\d+)\b", re.I)
-FIELD = re.compile(r"([A-Za-z_][\w]*(?:\([\w]+\))?)\s*=\s*([^\s,|]+)")
+FIELD = re.compile(r"([A-Za-z_]\w*(?:\(\w+\))?)\s*=\s*(.*?)(?=\s*[,|]|\s*[A-Za-z_]\w*(?:\(\w+\))?\s*=|$)")
 FOLD = re.compile(r"\bfold\s*(\d+)\b", re.I)
 
 
@@ -78,7 +78,10 @@ def parse_log(text: str) -> dict:
         epoch = EPOCH.search(line)
         marker = FOLD.search(line)
         if epoch:
-            fields = {key: finite_number(value, f"Log line {line_number} {key}") for key, value in FIELD.findall(line)}
+            pairs = FIELD.findall(line)
+            if len({key for key, _ in pairs}) != len(pairs):
+                raise ValueError(f"Log line {line_number}: duplicate metric fields")
+            fields = {key: finite_number(value, f"Log line {line_number} {key}") for key, value in pairs}
             if not fields:
                 raise ValueError(f"Log line {line_number}: epoch row has no numeric fields")
             pending.append({'epoch': int(epoch[1]), **fields})
